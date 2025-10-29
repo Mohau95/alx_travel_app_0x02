@@ -1,0 +1,22 @@
+@api_view(['GET'])
+def verify_payment(request):
+    tx_ref = request.query_params.get('tx_ref')
+
+    url = f"https://api.chapa.co/v1/transaction/verify/{tx_ref}"
+    headers = {"Authorization": f"Bearer {settings.CHAPA_SECRET_KEY}"}
+
+    response = requests.get(url, headers=headers)
+    result = response.json()
+
+    if result['status'] == 'success':
+        try:
+            payment = Payment.objects.get(transaction_id=tx_ref)
+            payment.status = 'Completed'
+            payment.save()
+        except Payment.DoesNotExist:
+            pass
+    else:
+        payment.status = 'Failed'
+        payment.save()
+
+    return Response(result)

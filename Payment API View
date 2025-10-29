@@ -1,0 +1,39 @@
+import requests
+from django.conf import settings
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import Payment
+
+@api_view(['POST'])
+def initiate_payment(request):
+    booking_ref = request.data.get('booking_reference')
+    amount = request.data.get('amount')
+    user_email = request.data.get('email')
+
+    payment = Payment.objects.create(
+        booking_reference=booking_ref,
+        amount=amount
+    )
+
+    headers = {
+        "Authorization": f"Bearer {settings.CHAPA_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    data = {
+        "amount": str(amount),
+        "currency": "ZAR",
+        "email": user_email,
+        "tx_ref": f"{booking_ref}_{payment.id}",
+        "callback_url": "http://127.0.0.1:8000/api/verify-payment/"
+    }
+
+    response = requests.post("https://api.chapa.co/v1/transaction/initialize", json=data, headers=headers)
+
+    if response.status_code == 200:
+        result = response.json()
+        payment.transaction_id = result['data']['tx_ref']
+        payment.save()
+        return Response(result)
+    else:
+        return Response({"error": "Payment initiation failed"}, status=400)

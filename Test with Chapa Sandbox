@@ -1,0 +1,4 @@
+CHAPA_SECRET_KEY=CHASE_TEST_KEY_xxx
+curl -X POST http://127.0.0.1:8000/api/initiate-payment/ \
+-H "Content-Type: application/json" \
+-d '{"booking_reference": "BK12345", "amount": "100.00", "email": "user@example.com"}'
